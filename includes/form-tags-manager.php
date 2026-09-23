@@ -1,7 +1,5 @@
 <?php
 
-if ( ! defined( 'ABSPATH' ) ) exit; // Exit if accessed directly
-
 /**
  * Wrapper function of WPCF7_FormTagsManager::add().
  */
@@ -76,7 +74,9 @@ class WPCF7_FormTagsManager {
 	 * @return WPCF7_FormTagsManager The singleton manager.
 	 */
 	public static function get_instance() {
-		self::$instance ??= new self();
+		if ( empty( self::$instance ) ) {
+			self::$instance = new self();
+		}
 
 		return self::$instance;
 	}

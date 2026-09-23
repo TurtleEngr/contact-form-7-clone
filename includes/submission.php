@@ -1,7 +1,5 @@
 <?php
 
-if ( ! defined( 'ABSPATH' ) ) exit; // Exit if accessed directly
-
 /**
  * Class representing contact form submission.
  */
@@ -11,7 +9,7 @@ class WPCF7_Submission {
 
 	private static $instance;
 
-	private readonly WPCF7_ContactForm $contact_form;
+	private $contact_form;
 	private $status = 'init';
 	private $posted_data = array();
 	private $posted_data_hash = null;
@@ -419,7 +417,7 @@ class WPCF7_Submission {
 	private function sanitize_posted_data( $value ) {
 		return map_deep( $value, static function ( $val ) {
 			$val = (string) $val;
-			$val = wp_scrub_utf8( $val );
+			$val = wp_check_invalid_utf8( $val );
 			$val = wp_kses_no_null( $val );
 			$val = wpcf7_strip_whitespaces( $val );
 			return $val;
@@ -566,7 +564,7 @@ class WPCF7_Submission {
 		$this->contact_form->validate_schema(
 			array(
 				'text' => true,
-				'file' => true,
+				'file' => false,
 				'field' => array(),
 			),
 			$result
@@ -833,20 +831,22 @@ class WPCF7_Submission {
 		) );
 
 		foreach ( $tags as $tag ) {
-			if (
-				! $result->is_valid( $tag->name ) or
-				empty( $_FILES[$tag->name] )
-			) {
+			if ( empty( $_FILES[$tag->name] ) ) {
 				continue;
 			}
 
-			$new_files = wpcf7_unship_uploaded_file( $_FILES[$tag->name], array(
+			$file = $_FILES[$tag->name];
+
+			$options = array(
 				'tag' => $tag,
 				'name' => $tag->name,
 				'required' => $tag->is_required(),
 				'filetypes' => $tag->get_option( 'filetypes' ),
 				'limit' => $tag->get_limit_option(),
-			) );
+				'schema' => $this->contact_form->get_schema(),
+			);
+
+			$new_files = wpcf7_unship_uploaded_file( $file, $options );
 
 			if ( is_wp_error( $new_files ) ) {
 				$result->invalidate( $tag, $new_files );
@@ -854,8 +854,9 @@ class WPCF7_Submission {
 				$this->add_uploaded_file( $tag->name, $new_files );
 			}
 
-			$result = apply_filters( "wpcf7_validate_{$tag->type}", $result,
-				$tag,
+			$result = apply_filters(
+				"wpcf7_validate_{$tag->type}",
+				$result, $tag,
 				array(
 					'uploaded_files' => $new_files,
 				)

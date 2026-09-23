@@ -1,7 +1,5 @@
 <?php
 
-if ( ! defined( 'ABSPATH' ) ) exit; // Exit if accessed directly
-
 /**
  * Replaces double line breaks with paragraph elements.
  *
@@ -74,9 +72,9 @@ function wpcf7_autop_preserve_newline_callback( $matches ) {
  */
 function wpcf7_sanitize_query_var( $text ) {
 	$text = wp_unslash( $text );
-	$text = wp_scrub_utf8( $text );
+	$text = wp_check_invalid_utf8( $text );
 
-	if ( str_contains( $text, '<' ) ) {
+	if ( false !== strpos( $text, '<' ) ) {
 		$text = wp_pre_kses_less_than( $text );
 		$text = wp_strip_all_tags( $text );
 	}
@@ -387,6 +385,12 @@ function wpcf7_kses_allowed_html( $context = 'form' ) {
 
 	if ( 'form' === $context ) {
 		$additional_tags_for_form = array(
+			'button' => array(
+				'disabled' => true,
+				'name' => true,
+				'type' => true,
+				'value' => true,
+			),
 			'datalist' => array(),
 			'fieldset' => array(
 				'disabled' => true,
@@ -415,6 +419,18 @@ function wpcf7_kses_allowed_html( $context = 'form' ) {
 				'type' => true,
 				'value' => true,
 			),
+			'label' => array(
+				'for' => true,
+			),
+			'legend' => array(),
+			'meter' => array(
+				'value' => true,
+				'min' => true,
+				'max' => true,
+				'low' => true,
+				'high' => true,
+				'optimum' => true,
+			),
 			'optgroup' => array(
 				'disabled' => true,
 				'label' => true,
@@ -428,6 +444,10 @@ function wpcf7_kses_allowed_html( $context = 'form' ) {
 			'output' => array(
 				'for' => true,
 				'name' => true,
+			),
+			'progress' => array(
+				'max' => true,
+				'value' => true,
 			),
 			'select' => array(
 				'autocomplete' => true,
@@ -483,7 +503,6 @@ function wpcf7_kses_allowed_html( $context = 'form' ) {
 					'id' => true,
 					'inputmode' => true,
 					'lang' => true,
-					'popover' => true,
 					'role' => true,
 					'spellcheck' => true,
 					'style' => true,
